@@ -47,6 +47,7 @@ execution are documented there as experimental work.
 | [Kolmogorov Engine and PyKolm](docs/KOLMOGOROV_ENGINE.md) | Released source layout, CPU subtree work, OpenCL paths, and current limits. |
 | [NeoBayes Engine](docs/NEOBAYES_ENGINE.md) | Separate proposed OpenCL engine, research goals, and qualification criteria. |
 | [Ubuntu 24.04 GUI trial 0.1.3](dist/NeoCruncher-GUI-Prototype-0.1.3-Ubuntu24.04-x86_64.AppImage) | AppImage for x86_64 with the released 1.0 CPU CLI. See the [Spanish run guide](dist/GUI-Prototype-0.1.3-README.md) and [checksum](dist/SHA256SUMS-0.1.3.txt). A [direct-run archive](dist/NeoCruncher-GUI-Prototype-0.1.3-Ubuntu24.04-x86_64.tar.gz) and [its checksum](dist/SHA256SUMS-0.1.3-archive.txt) are available if AppImageLauncher fails. |
+| [Windows x86_64 GUI 0.1.3 candidate](https://github.com/MARKOV-NEKRASOV/neocruncher/releases/tag/gui-v0.1.3-windows-candidate) | ZIP containing `NeoCruncher-GUI.exe` and its separate CPU CLI. Native Windows CI passed a verified 1,000-digit π run and the GUI-to-CLI worker test; desktop validation is pending. Extract the whole ZIP, keep the two executables in their packaged layout, and follow `README-WINDOWS.md`. |
 | [Rust GUI trial source](gui/README.md) | Frontend, launcher, desktop-menu installer, dependency lockfile, and build recipe. Download the [documented source archive](dist/NeoCruncher-GUI-0.1.3-source.tar.gz) ([checksum](dist/SHA256SUMS-0.1.3-source.txt)) or read the [source architecture](gui/ARCHITECTURE.md). |
 | [License](LICENSE) | GNU GPL version 3 only (`GPL-3.0-only`). |
 
