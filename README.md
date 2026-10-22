@@ -47,7 +47,7 @@ execution are documented there as experimental work.
 | [Kolmogorov Engine and PyKolm](docs/KOLMOGOROV_ENGINE.md) | Released source layout, CPU subtree work, OpenCL paths, and current limits. |
 | [NeoBayes Engine](docs/NEOBAYES_ENGINE.md) | Separate proposed OpenCL engine, research goals, and qualification criteria. |
 | [Ubuntu 24.04 GUI trial 0.1.3](dist/NeoCruncher-GUI-Prototype-0.1.3-Ubuntu24.04-x86_64.AppImage) | AppImage for x86_64 with the released 1.0 CPU CLI. See the [Spanish run guide](dist/GUI-Prototype-0.1.3-README.md) and [checksum](dist/SHA256SUMS-0.1.3.txt). A [direct-run archive](dist/NeoCruncher-GUI-Prototype-0.1.3-Ubuntu24.04-x86_64.tar.gz) and [its checksum](dist/SHA256SUMS-0.1.3-archive.txt) are available if AppImageLauncher fails. |
-| [Rust GUI trial source](gui/README.md) | Frontend, launcher, desktop-menu installer, dependency lockfile and build recipe. |
+| [Rust GUI trial source](gui/README.md) | Frontend, launcher, desktop-menu installer, dependency lockfile, and build recipe. Download the [documented source archive](dist/NeoCruncher-GUI-0.1.3-source.tar.gz) ([checksum](dist/SHA256SUMS-0.1.3-source.txt)) or read the [source architecture](gui/ARCHITECTURE.md). |
 | [License](LICENSE) | GNU GPL version 3 only (`GPL-3.0-only`). |
 
 The release archive contains its own README, `COPYING`, `NOTICE`, architecture

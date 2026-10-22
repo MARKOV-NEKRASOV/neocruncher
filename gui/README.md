@@ -2,6 +2,12 @@
 
 This is a separate Rust desktop frontend for the existing NeoCruncher 1.0 CLI. It does not contain a new computation engine. It launches the release's `run_neocruncher.sh` with explicit process arguments, reads JSONL progress events, and displays CLI output and the independent verification result from the JSON report. No command is assembled through a shell string.
 
+The [source and execution contract](ARCHITECTURE.md) maps each file to its
+responsibility and documents the process, progress, cancellation, verification,
+and desktop packaging boundaries. The
+[downloadable source archive](../dist/NeoCruncher-GUI-0.1.3-source.tar.gz)
+contains this Rust crate, packaging scripts, documentation, and GPL license.
+
 The [Ubuntu 24.04 x86_64 GUI trial](../dist/GUI-Prototype-0.1.3-README.md)
 bundles the released 1.0 CPU CLI. Version 0.1.3 keeps the 0.1.1 Rust GUI
 binary and selects native Wayland automatically on a GNOME Wayland session.

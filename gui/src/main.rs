@@ -60,6 +60,7 @@ enum Verification {
     None,
 }
 
+/// Immutable request sent from the UI thread to one CLI worker.
 struct Job {
     bundle: PathBuf,
     packaged_cli: Option<PathBuf>,
@@ -95,6 +96,7 @@ impl Job {
     }
 }
 
+/// Messages returned to egui; workers never mutate UI state directly.
 enum WorkerEvent {
     Log(String),
     Progress {
@@ -108,6 +110,7 @@ enum WorkerEvent {
     },
 }
 
+/// Presentation state and the channels for the current calculation.
 struct NeoApp {
     theme_ready: bool,
     bundle: String,
@@ -157,6 +160,7 @@ fn apply_theme(ctx: &egui::Context) {
     ctx.set_style(style);
 }
 impl NeoApp {
+    /// Reject inputs that cannot be launched or would overwrite an existing result.
     fn validated_job(&self) -> Result<Job, String> {
         let bundle = PathBuf::from(self.bundle.trim());
         let packaged_cli = std::env::var_os("NEOCRUNCHER_CLI").map(PathBuf::from);
@@ -426,6 +430,7 @@ fn stream_lines<R: Read + Send + 'static>(
     })
 }
 
+/// Consume only complete JSONL records, retaining an incomplete trailing record.
 fn read_progress(file: &mut File, position: &mut u64, sender: &Sender<WorkerEvent>) {
     if file.seek(SeekFrom::Start(*position)).is_err() {
         return;
@@ -475,6 +480,7 @@ fn report_verification(output: &Path) -> String {
         .unwrap_or_else(|| "Not reported by CLI".into())
 }
 
+/// Own the CLI process, progress polling, cancellation, and final check result.
 fn run_job(job: Job, sender: Sender<WorkerEvent>, cancel: Receiver<()>) {
     let temp = match tempfile::tempdir() {
         Ok(dir) => dir,
