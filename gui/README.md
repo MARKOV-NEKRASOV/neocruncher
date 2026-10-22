@@ -14,6 +14,15 @@ binary and selects native Wayland automatically on a GNOME Wayland session.
 AppImageLauncher integration still needs a desktop test. The launcher,
 per-user menu installer, and container build recipe are in [`packaging/`](packaging/).
 
+The [Windows x86_64 candidate instructions](packaging/WINDOWS-CANDIDATE.md)
+describe a separate GUI `.exe` plus frozen CPU CLI. The Windows source changes
+are in this crate and [`patch_windows_cli.py`](packaging/patch_windows_cli.py),
+and the native build/smoke-test workflow is
+[`windows-gui-013.yml`](../.github/workflows/windows-gui-013.yml). The Windows
+package is not release-qualified until the native CI build, frozen CPU
+calculation, GUI-to-CLI worker test, and desktop window test pass. GPU and
+hybrid routes are outside its qualified scope.
+
 ## Build and run
 
 Install a current Rust toolchain and the system libraries required by eframe's Linux X11/OpenGL backend. From this directory:

@@ -1,0 +1,78 @@
+name: Build GUI 0.1.3 Windows candidate
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-x86_64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: '1.99.1'
+      - name: Extract and patch released CPU CLI source
+        shell: pwsh
+        run: |
+          Expand-Archive -Path Neocruncher-1.0.0-release.zip -DestinationPath "$env:RUNNER_TEMP\neo-release"
+          $release = Join-Path $env:RUNNER_TEMP 'neo-release\Neocruncher 1.0 release'
+          $app = Join-Path $release 'NeoCruncher-1.0.0a1'
+          python gui/packaging/patch_windows_cli.py $app
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m py_compile (Join-Path $app 'neocruncher_app\hardware.py') (Join-Path $app 'neocruncher_app\jobs.py')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "NEO_RELEASE_SOURCE=$release" >> $env:GITHUB_ENV
+      - name: Build and test GUI Rust source
+        shell: pwsh
+        run: |
+          cargo test --locked --manifest-path gui/Cargo.toml
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo build --locked --release --manifest-path gui/Cargo.toml
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Freeze the Windows CPU CLI
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip pyinstaller
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pip install (Join-Path $env:NEO_RELEASE_SOURCE 'Kolmogorov-Engine-1.0.0a1') (Join-Path $env:NEO_RELEASE_SOURCE 'NeoCruncher-1.0.0a1')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          pyinstaller --noconfirm --clean --onedir --name neocruncher-cli --collect-all neocruncher_app --collect-all kolmogorov --collect-all pykolm --distpath "$env:RUNNER_TEMP\neo-dist" --workpath "$env:RUNNER_TEMP\neo-build" --specpath "$env:RUNNER_TEMP\neo-spec" gui/packaging/cli_entry.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Exercise frozen CLI and the GUI-to-CLI worker contract
+        shell: pwsh
+        run: |
+          $cli = Join-Path $env:RUNNER_TEMP 'neo-dist\neocruncher-cli\neocruncher-cli.exe'
+          $result = Join-Path $env:RUNNER_TEMP 'neo-windows-pi-1000.txt'
+          & $cli --constant pi --digits 1000 --compute-mode cpu --verify --output $result
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $report = Get-Content "$result.json" -Raw | ConvertFrom-Json
+          if (-not $report.independent_verification.StartsWith('PASS:')) { throw 'Full independent verification did not pass' }
+          $env:NEOCRUNCHER_TEST_CLI = $cli
+          cargo test --locked --manifest-path gui/Cargo.toml runs_frozen_cli_with_full_verification_when_requested
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Assemble unqualified Windows candidate
+        shell: pwsh
+        run: |
+          $package = Join-Path $env:RUNNER_TEMP 'NeoCruncher-GUI-0.1.3-Windows-x86_64-CANDIDATE'
+          New-Item -ItemType Directory -Path $package -Force | Out-Null
+          Copy-Item target/release/neocruncher-gui.exe (Join-Path $package 'NeoCruncher-GUI.exe')
+          Copy-Item (Join-Path $env:RUNNER_TEMP 'neo-dist\neocruncher-cli') (Join-Path $package 'neocruncher-cli') -Recurse
+          Copy-Item LICENSE (Join-Path $package 'GUI-LICENSE.txt')
+          Copy-Item (Join-Path $env:NEO_RELEASE_SOURCE 'COPYING') (Join-Path $package 'CLI-COPYING.txt')
+          Copy-Item (Join-Path $env:NEO_RELEASE_SOURCE 'NOTICE') (Join-Path $package 'CLI-NOTICE.txt')
+          Copy-Item gui/packaging/patch_windows_cli.py (Join-Path $package 'CLI-Windows-source-patch.py')
+          Copy-Item gui/packaging/WINDOWS-CANDIDATE.md (Join-Path $package 'README-WINDOWS.md')
+          Compress-Archive -Path $package -DestinationPath "$package.zip"
+          Get-FileHash -Algorithm SHA256 "$package.zip" | Format-List
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NeoCruncher-GUI-0.1.3-Windows-x86_64-CANDIDATE
+          path: ${{ runner.temp }}/NeoCruncher-GUI-0.1.3-Windows-x86_64-CANDIDATE.zip
+          if-no-files-found: error
+          retention-days: 14

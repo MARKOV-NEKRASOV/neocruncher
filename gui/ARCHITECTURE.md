@@ -16,6 +16,7 @@ launcher. Source for the arithmetic program is in the separate
 | [`packaging/cli_entry.py`](packaging/cli_entry.py) | Entry point used to freeze the released 1.0 CLI for the trial package. |
 | [`packaging/build-inside-ubuntu24.sh`](packaging/build-inside-ubuntu24.sh), [`packaging/Dockerfile.ubuntu24`](packaging/Dockerfile.ubuntu24) | Ubuntu 24.04 packaging recipe. |
 | [`packaging/install-desktop.sh`](packaging/install-desktop.sh) | Per-user application-menu entry for the extracted archive. |
+| [`packaging/patch_windows_cli.py`](packaging/patch_windows_cli.py), [`../.github/workflows/windows-gui-013.yml`](../.github/workflows/windows-gui-013.yml) | Hash-checked Windows CPU CLI source adaptation, native build and frozen-CLI smoke test. |
 
 ## Runtime boundary
 
@@ -34,6 +35,11 @@ digits, mode, and verification setting to individual CLI arguments. Rust
 command. In a source build the worker calls the installed
 `run_neocruncher.sh`; in the distributed trial it calls the packaged CLI
 selected by `NEOCRUNCHER_CLI`.
+On Windows the packaged CLI may also be found in the `neocruncher-cli`
+directory beside the GUI executable; an installed Unix shell bundle is not
+accepted. The Windows build uses the released 1.0 source plus a hash-checked
+patch to obtain RAM capacity through `GlobalMemoryStatusEx` and hide the
+worker console. The GUI and CLI remain separate executables in one ZIP.
 
 The worker polls a temporary JSONL progress file. It processes complete
 newline-terminated records and leaves a partial final record for the next
@@ -46,9 +52,11 @@ or Prefix check counts as a successful GUI job only if that field begins with
 With verification set to None, a successful CLI exit completes the job without
 claiming an independent check. The GUI does not calculate or certify digits.
 
-Cancellation sends `SIGINT` to the CLI process and, after five seconds, kills
-it if still running. The installed release's shell launcher replaces itself
-with Python; the trial package runs its frozen CLI directly. A cancelled job is not marked
+On Unix, cancellation sends `SIGINT` to the CLI process and, after five
+seconds, kills it if still running. On Windows the GUI terminates the hidden
+frozen CLI immediately because Unix signals are unavailable. The installed
+Unix shell launcher replaces itself with Python; the packaged routes run
+their frozen CLI directly. A cancelled job is not marked
 successful. The temporary progress file is removed when its owning worker
 returns; result and report files remain under the user-selected path.
 
@@ -77,6 +85,8 @@ Version 0.1.3 changes launcher selection; its AppImageLauncher integration
 still needs a desktop test. GPU and hybrid selections are exposed by the GUI
 but require a separately supported CLI route and OpenCL setup. This package
 is not evidence for a new Vulkan backend, NeoBayes, GPU-only π, or a speedup.
+The Windows ZIP remains an **unqualified candidate** until its native build,
+frozen CPU/GUI-worker checks and a manual Windows desktop window/run test pass.
 
 See the [GUI README](README.md) for building and the
 [Spanish trial guide](../dist/GUI-Prototype-0.1.3-README.md) for installation.

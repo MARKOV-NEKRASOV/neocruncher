@@ -30,6 +30,22 @@ const CONSTANTS: &[&str] = &[
     "gamma_fifth",
 ];
 
+/// A packaged CLI is supplied by the Linux AppImage environment or beside a
+/// Windows GUI executable. A missing Windows CLI never starts a shell script.
+fn packaged_cli_path() -> Option<PathBuf> {
+    if let Some(path) = std::env::var_os("NEOCRUNCHER_CLI") {
+        return Some(PathBuf::from(path));
+    }
+    #[cfg(windows)]
+    {
+        let exe = std::env::current_exe().ok()?;
+        let cli = exe.parent()?.join("neocruncher-cli").join("neocruncher-cli.exe");
+        return cli.is_file().then_some(cli);
+    }
+    #[cfg(not(windows))]
+    None
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Mode {
     Cpu,
@@ -163,7 +179,7 @@ impl NeoApp {
     /// Reject inputs that cannot be launched or would overwrite an existing result.
     fn validated_job(&self) -> Result<Job, String> {
         let bundle = PathBuf::from(self.bundle.trim());
-        let packaged_cli = std::env::var_os("NEOCRUNCHER_CLI").map(PathBuf::from);
+        let packaged_cli = packaged_cli_path();
         let digits: u64 = self
             .digits
             .trim()
@@ -197,6 +213,10 @@ impl NeoApp {
                 return Err("Packaged NeoCruncher CLI is unavailable".into());
             }
         } else {
+            #[cfg(windows)]
+            return Err("The Windows GUI requires its bundled neocruncher-cli.exe beside the GUI executable".into());
+            #[cfg(unix)]
+            {
             if !bundle.is_absolute() {
                 return Err("Installed release directory must be an absolute path".into());
             }
@@ -204,6 +224,7 @@ impl NeoApp {
                 || !bundle.join(".venv-system/bin/python").is_file()
             {
                 return Err("Select an installed release directory containing run_neocruncher.sh and .venv-system".into());
+            }
             }
         }
         Ok(Job {
@@ -345,9 +366,9 @@ impl eframe::App for NeoApp {
                                     ui.add(egui::TextEdit::singleline(&mut self.output).desired_width(ui.available_width()));
                                     ui.label(egui::RichText::new("Enter an absolute path in an existing directory.").small().color(muted));
                                     ui.add_space(14.0);
-                                    if std::env::var_os("NEOCRUNCHER_CLI").is_some() {
+                                    if packaged_cli_path().is_some() {
                                         ui.label("CLI runtime");
-                                        ui.label(egui::RichText::new("NeoCruncher CLI included with this AppImage.").color(muted));
+                                        ui.label(egui::RichText::new("NeoCruncher CLI included with this package.").color(muted));
                                     } else {
                                         ui.label("Installed release directory");
                                         ui.add(egui::TextEdit::singleline(&mut self.bundle).desired_width(ui.available_width()));
@@ -520,13 +541,19 @@ fn run_job(job: Job, sender: Sender<WorkerEvent>, cancel: Receiver<()>) {
     command
         .args(job.cli_args(&progress_path))
         .current_dir(if job.packaged_cli.is_some() {
-            job.output.parent().unwrap_or(Path::new("/"))
+            job.output.parent().unwrap_or(Path::new("."))
         } else {
             &job.bundle
         })
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        // The GUI collects both streams; keep the packaged CLI console hidden.
+        command.creation_flags(0x0800_0000);
+    }
     let mut child = match command.spawn() {
         Ok(child) => child,
         Err(error) => {
@@ -556,9 +583,16 @@ fn run_job(job: Job, sender: Sender<WorkerEvent>, cancel: Receiver<()>) {
     loop {
         read_progress(&mut progress_file, &mut position, &sender);
         if cancel.try_recv().is_ok() && cancellation_started.is_none() {
-            // The root launcher execs Python, so this PID receives KeyboardInterrupt.
+            #[cfg(unix)]
             unsafe {
+                // The Unix launcher execs Python, so this PID receives SIGINT.
                 libc::kill(child.id() as libc::pid_t, libc::SIGINT);
+            }
+            #[cfg(windows)]
+            {
+                // Windows has no Unix SIGINT for a hidden child process.
+                // Terminate the frozen CLI immediately; result files may be partial.
+                let _ = child.kill();
             }
             cancellation_started = Some(Instant::now());
             let _ = sender.send(WorkerEvent::Log("Cancellation signal sent".into()));
@@ -726,5 +760,30 @@ mod tests {
         run_job(job, tx, cancel_rx);
         assert!(rx.try_iter().any(|event| matches!(event,
             WorkerEvent::Finished { success: true, verification, .. } if verification.starts_with("PASS_PREFIX:"))));
+    }
+    #[test]
+    fn runs_frozen_cli_with_full_verification_when_requested() {
+        let Ok(cli) = std::env::var("NEOCRUNCHER_TEST_CLI") else {
+            return;
+        };
+        let dir = tempfile::tempdir().unwrap();
+        let output = dir.path().join("pi-packaged.txt");
+        let job = Job {
+            bundle: dir.path().to_path_buf(),
+            packaged_cli: Some(PathBuf::from(cli)),
+            constant: "pi".into(),
+            digits: 1000,
+            mode: Mode::Cpu,
+            verification: Verification::Full,
+            output: output.clone(),
+        };
+        let (tx, rx) = mpsc::channel();
+        let (_cancel_tx, cancel_rx) = mpsc::channel();
+        run_job(job, tx, cancel_rx);
+        let events: Vec<_> = rx.try_iter().collect();
+        assert!(events.iter().any(|event| matches!(event,
+            WorkerEvent::Finished { success: true, verification, .. } if verification.starts_with("PASS:"))));
+        assert!(output.exists());
+        assert!(PathBuf::from(format!("{}.json", output.display())).exists());
     }
 }
