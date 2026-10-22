@@ -1,9 +1,11 @@
 # GUI 0.1.3 source and execution contract
 
-This document describes the **published desktop trial**, not the proposed
-NeoCruncher engine release. The Rust package version is `0.1.1`; the `0.1.3`
-trial repackages that same frontend and CLI binary with a corrected Linux
-launcher. Source for the arithmetic program is in the separate
+This document describes the **published Linux desktop trial** and the Windows
+candidate source, not the proposed NeoCruncher engine release. The Rust crate
+still declares version `0.1.1`; the Linux `0.1.3` trial repackages the earlier
+frontend and CLI binaries with a corrected launcher. The Windows candidate
+adds platform-specific source changes and has no qualified binary yet.
+Source for the arithmetic program is in the separate
 [`Neocruncher-1.0.0-release.zip`](../Neocruncher-1.0.0-release.zip).
 
 ## Source map

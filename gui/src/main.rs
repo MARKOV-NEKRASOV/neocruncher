@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
+#![cfg_attr(all(windows, not(test)), windows_subsystem = "windows")]
 //! A separate desktop frontend for the existing NeoCruncher CLI.
 use eframe::egui;
 use serde_json::Value;
