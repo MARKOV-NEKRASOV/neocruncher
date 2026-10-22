@@ -76,7 +76,11 @@ jobs:
         run: |
           $package = Join-Path $env:RUNNER_TEMP 'NeoCruncher-GUI-0.1.3-Windows-x86_64-CANDIDATE'
           New-Item -ItemType Directory -Path $package -Force | Out-Null
-          Copy-Item target/release/neocruncher-gui.exe (Join-Path $package 'NeoCruncher-GUI.exe')
+          $target = (cargo metadata --no-deps --format-version 1 --manifest-path gui/Cargo.toml | ConvertFrom-Json).target_directory
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $guiExe = Join-Path $target 'release\neocruncher-gui.exe'
+          if (-not (Test-Path $guiExe)) { throw "Built GUI executable missing: $guiExe" }
+          Copy-Item $guiExe (Join-Path $package 'NeoCruncher-GUI.exe')
           Copy-Item (Join-Path $env:RUNNER_TEMP 'neo-dist\neocruncher-cli') (Join-Path $package 'neocruncher-cli') -Recurse
           Copy-Item LICENSE (Join-Path $package 'GUI-LICENSE.txt')
           Copy-Item (Join-Path $env:NEO_RELEASE_SOURCE 'COPYING') (Join-Path $package 'CLI-COPYING.txt')
