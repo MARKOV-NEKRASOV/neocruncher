@@ -40,8 +40,9 @@ selected by `NEOCRUNCHER_CLI`.
 On Windows the packaged CLI may also be found in the `neocruncher-cli`
 directory beside the GUI executable; an installed Unix shell bundle is not
 accepted. The Windows build uses the released 1.0 source plus a hash-checked
-patch to obtain RAM capacity through `GlobalMemoryStatusEx` and hide the
-worker console. The GUI and CLI remain separate executables in one ZIP.
+patch to obtain RAM capacity through `GlobalMemoryStatusEx`, use UTF-8 for
+worker pipes, and hide the worker console. The frozen entry point sets UTF-8
+for progress output. The GUI and CLI remain separate executables in one ZIP.
 
 The worker polls a temporary JSONL progress file. It processes complete
 newline-terminated records and leaves a partial final record for the next

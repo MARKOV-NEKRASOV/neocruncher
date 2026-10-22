@@ -55,8 +55,17 @@ jobs:
         run: |
           $cli = Join-Path $env:RUNNER_TEMP 'neo-dist\neocruncher-cli\neocruncher-cli.exe'
           $result = Join-Path $env:RUNNER_TEMP 'neo-windows-pi-1000.txt'
-          & $cli --constant pi --digits 1000 --compute-mode cpu --verify --output $result
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $log = Join-Path $env:RUNNER_TEMP 'neo-windows-cli-smoke.txt'
+          $cliOutput = & $cli --constant pi --digits 1000 --compute-mode cpu --verify --output $result 2>&1
+          $code = $LASTEXITCODE
+          $cliOutput | Out-File -FilePath $log -Encoding utf8
+          if ($code -ne 0) {
+            Add-Content $env:GITHUB_STEP_SUMMARY '### Frozen CLI smoke test failed'
+            Add-Content $env:GITHUB_STEP_SUMMARY '```text'
+            Get-Content $log -Tail 40 | Add-Content $env:GITHUB_STEP_SUMMARY
+            Add-Content $env:GITHUB_STEP_SUMMARY '```'
+            exit $code
+          }
           $report = Get-Content "$result.json" -Raw | ConvertFrom-Json
           if (-not $report.independent_verification.StartsWith('PASS:')) { throw 'Full independent verification did not pass' }
           $env:NEOCRUNCHER_TEST_CLI = $cli

@@ -19,7 +19,9 @@ on Windows; a partial output may remain and should be labeled failed.
 
 The Windows candidate build uses the public 1.0 source archive plus the
 reviewable `CLI-Windows-source-patch.py`. That patch adds Windows physical/free
-RAM discovery and prevents the CLI worker from opening a console window. The
+RAM discovery, uses UTF-8 for worker pipes, and prevents the CLI worker from
+opening a console window. The frozen entry point also writes Unicode progress
+in UTF-8 rather than a legacy Windows code page. The
 source and build workflow are under `gui/` and `.github/workflows/` in the
 repository. The Rust GUI discovers the CLI in the adjacent directory or from
 `NEOCRUNCHER_CLI` if explicitly set. The build CI tests the frozen CLI and

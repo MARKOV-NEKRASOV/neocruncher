@@ -68,7 +68,7 @@ def patch(source_dir: Path) -> None:
     text = replace_once(
         text,
         "             text=True,env=env,start_new_session=os.name=='posix' and not env.get('NEO_AUDIT_GROUP'))",
-        "             text=True,env=env,start_new_session=os.name=='posix' and not env.get('NEO_AUDIT_GROUP'),\n"
+        "             text=True,encoding='utf-8',env=env,start_new_session=os.name=='posix' and not env.get('NEO_AUDIT_GROUP'),\n"
         "             creationflags=(subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0))",
     )
     jobs.write_text(text, encoding="utf-8")

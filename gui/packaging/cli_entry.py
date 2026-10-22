@@ -8,6 +8,11 @@ from neocruncher_app.cli import main
 
 if __name__ == "__main__":
     multiprocessing.freeze_support()
+    # Windows CI and GUI pipes may otherwise default to a legacy code page.
+    # Progress labels contain Unicode symbols; both parent and worker use UTF-8.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     try:
         # NeoCruncher's job supervisor starts `sys.executable -m
         # neocruncher_app.job_worker`. In a frozen program sys.executable is
