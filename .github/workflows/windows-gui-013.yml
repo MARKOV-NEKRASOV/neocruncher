@@ -10,7 +10,7 @@ on:
       - Neocruncher-1.0.0-release.zip
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   windows-x86_64:
@@ -91,3 +91,18 @@ jobs:
           path: ${{ runner.temp }}/NeoCruncher-GUI-0.1.3-Windows-x86_64-CANDIDATE.zip
           if-no-files-found: error
           retention-days: 14
+      - name: Publish downloadable Windows candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP 'NeoCruncher-GUI-0.1.3-Windows-x86_64-CANDIDATE.zip'
+          $tag = 'gui-v0.1.3-windows-candidate'
+          $notes = 'Windows x86_64 GUI 0.1.3 candidate. Native CI verified a 1,000-digit CPU pi calculation with independent verification and the GUI worker contract. User desktop validation remains pending. This package includes the GUI executable and its separate CPU CLI.'
+          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $zip --clobber --repo $env:GITHUB_REPOSITORY
+          } else {
+            gh release create $tag $zip --prerelease --title 'NeoCruncher GUI 0.1.3 Windows candidate' --notes $notes --repo $env:GITHUB_REPOSITORY
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
