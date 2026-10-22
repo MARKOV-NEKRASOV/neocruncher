@@ -1,0 +1,1 @@
+d42481b0280e07e965115f44925143603c3b3f9bf6877cbc7ef87b0824e3497a  NeoCruncher-GUI-Prototype-0.1.3-Ubuntu24.04-x86_64.AppImage

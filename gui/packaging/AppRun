@@ -1,0 +1,87 @@
+#!/bin/sh
+# Direct launcher for the Ubuntu 24.04 GUI trial; no AppImageLauncher needed.
+set -u
+
+APPDIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd) || exit 2
+NEOCRUNCHER_CLI="$APPDIR/usr/lib/neocruncher-cli/neocruncher-cli"
+GUI="$APPDIR/usr/bin/neocruncher-gui"
+export NEOCRUNCHER_CLI
+export LD_LIBRARY_PATH="$APPDIR/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+if [ ! -x "$GUI" ] || [ ! -x "$NEOCRUNCHER_CLI" ]; then
+  printf 'NeoCruncher: the GUI or bundled CLI is missing. Re-extract the complete archive.\n' >&2
+  exit 2
+fi
+
+diagnose=0
+case "${1:-}" in
+  --diagnose)
+    diagnose=1
+    shift
+    ;;
+  --self-test)
+    workdir=$(mktemp -d) || exit 2
+    trap 'rm -rf "$workdir"' EXIT HUP INT TERM
+    "$NEOCRUNCHER_CLI" --constant pi --digits 1000 --backend cpu \
+      --verify --output "$workdir/pi-1000.txt" || exit $?
+    if ! grep -q '"independent_verification": "PASS:' "$workdir/pi-1000.txt.json"; then
+      printf 'NeoCruncher: bundled CLI did not report a full independent PASS.\n' >&2
+      exit 2
+    fi
+    printf 'NeoCruncher: bundled CPU CLI self-test passed.\n'
+    exit 0
+    ;;
+  --x11)
+    shift
+    unset WAYLAND_DISPLAY WAYLAND_SOCKET
+    XDG_SESSION_TYPE=x11
+    export XDG_SESSION_TYPE
+    ;;
+  --wayland)
+    shift
+    unset DISPLAY
+    XDG_SESSION_TYPE=wayland
+    export XDG_SESSION_TYPE
+    ;;
+esac
+
+# Keep native Wayland selected on a GNOME Wayland session even when GNOME
+# also exports DISPLAY for XWayland.
+if [ "${XDG_SESSION_TYPE:-}" = wayland ] && [ -n "${WAYLAND_DISPLAY:-}" ]; then
+  unset DISPLAY
+  display_route=wayland
+elif [ -n "${DISPLAY:-}" ]; then
+  unset WAYLAND_DISPLAY WAYLAND_SOCKET
+  display_route=x11
+else
+  display_route=unavailable
+fi
+
+if [ "$diagnose" -eq 1 ]; then
+  printf 'NeoCruncher GUI trial launcher: 0.1.3\n'
+  printf 'Archive directory: %s\n' "$APPDIR"
+  printf 'Machine: %s\n' "$(uname -m)"
+  printf 'Selected display route: %s\n' "$display_route"
+  printf 'Session: %s\n' "${XDG_SESSION_TYPE:-unset}"
+  printf 'DISPLAY: %s\n' "${DISPLAY:-unset}"
+  printf 'WAYLAND_DISPLAY: %s\n' "${WAYLAND_DISPLAY:-unset}"
+  printf 'Missing GUI libraries (if any):\n'
+  ldd "$GUI" | grep 'not found' || true
+  exit 0
+fi
+
+# This small UI does not need accelerated GL. Software rendering sidesteps
+# driver-specific window creation crashes; users may opt out for diagnosis.
+if [ "${NEOCRUNCHER_GUI_SOFTWARE_GL:-1}" != 0 ]; then
+  LIBGL_ALWAYS_SOFTWARE=1
+  export LIBGL_ALWAYS_SOFTWARE
+fi
+
+printf 'NeoCruncher GUI trial 0.1.3: starting (%s; software GL %s).\n' \
+  "$display_route" "${LIBGL_ALWAYS_SOFTWARE:-0}" >&2
+"$GUI" "$@"
+status=$?
+if [ "$status" -ne 0 ]; then
+  printf 'NeoCruncher GUI exited with code %s. Run ./AppRun --diagnose and ./AppRun --self-test, then share their terminal output.\n' "$status" >&2
+fi
+exit "$status"
